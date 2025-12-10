@@ -4,7 +4,7 @@ from telegram.ext import Application
 from config.settings import TOKEN
 from logger.logger import setup_logger
 from db.database import init_db
-from handlers import register_all_handlers
+from who_anonim_bot.handlers import register_all_handlers
 
 def build_app():
     return Application.builder().token(TOKEN).build()
