@@ -22,7 +22,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         text,
         parse_mode="Markdown",
-        reply_markup=main_menu_keyboard()
+        reply_markup=get_menu_keyboard()
     )
 
 
