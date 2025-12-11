@@ -1,32 +1,21 @@
 import logging
-import os
+import sys
 
-# ===============================
-# 🔹 Настройка логирования
-# ===============================
+def setup_logger():
+    # Создаём логгер
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
 
-LOG_FILE = "bot.log"
+    # Формат логов
+    formatter = logging.Formatter(
+        fmt="[{asctime}] [{levelname}] {message}",
+        style="{",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-# Создаём логгер
-logger = logging.getLogger("WhoAnonimBot")
-logger.setLevel(logging.INFO)
+    # Вывод в консоль (важно для GSM Hosting)
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(formatter)
+    logger.addHandler(console)
 
-# Формат логов
-formatter = logging.Formatter(
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-
-# ---------- Логи в файл ----------
-file_handler = logging.FileHandler(LOG_FILE, encoding="utf-8")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-
-# ---------- Логи в консоль ----------
-console_handler = logging.StreamHandler()
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
-
-
-def get_logger():
-    """Возвращает настроенный логгер"""
     return logger
