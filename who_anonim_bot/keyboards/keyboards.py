@@ -1,109 +1,77 @@
-from telegram import (
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-)
+from telegram import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 
-# ===============================
-# 🔹 Главное меню
-# ===============================
-def main_menu(is_admin: bool = False):
-    kb = [
+
+# === Главное меню ===
+def get_main_menu():
+    keyboard = [
         [KeyboardButton("🔗 Моя анон-ссылка")],
         [KeyboardButton("🎲 Рулетка")],
         [KeyboardButton("💬 Помощь")]
     ]
-
-    if is_admin:
-        kb.append([KeyboardButton("⚙️ Админ-панель")])
-
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-# ===============================
-# 🔹 Моя анонимная ссылка
-# ===============================
-def my_link_menu():
-    kb = [
+# === Меню анонимной ссылки ===
+def get_anon_link_menu():
+    keyboard = [
         [KeyboardButton("🔄 Сменить ссылку")],
-        [KeyboardButton("⬅️ Назад в меню")]
+        [KeyboardButton("⬅️ Назад")]
     ]
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-# ===============================
-# 🔹 Inline кнопки в анонимном чате
-#   (только для владельца ссылки!)
-# ===============================
-def anon_owner_inline_buttons(session_id: int):
-    return InlineKeyboardMarkup([
+# === Inline-кнопки для анонимных сообщений ===
+def get_anon_reply_buttons(session_id):
+    keyboard = [
         [
             InlineKeyboardButton("💬 Ответить", callback_data=f"reply:{session_id}"),
             InlineKeyboardButton("⚠️ Пожаловаться", callback_data=f"report:{session_id}")
         ]
-    ])
-
-
-# ===============================
-# 🔹 Жалоба на анонима — выбор причины
-# ===============================
-def report_reason_keyboard(session_id: int):
-    return InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🧨 Мат", callback_data=f"reason:{session_id}:mat"),
-            InlineKeyboardButton("📨 Спам", callback_data=f"reason:{session_id}:spam"),
-        ],
-        [
-            InlineKeyboardButton("🔞 18+", callback_data=f"reason:{session_id}:18"),
-            InlineKeyboardButton("⚡ Угроза", callback_data=f"reason:{session_id}:threat"),
-        ],
-        [InlineKeyboardButton("❌ Отмена", callback_data="cancel_report")]
-    ])
-
-
-# ===============================
-# 🔹 Рулетка — выбор пола
-# ===============================
-def gender_keyboard():
-    kb = [
-        [KeyboardButton("👨 Мужчина"), KeyboardButton("👩 Женщина")],
-        [KeyboardButton("⬅️ Назад в меню")]
     ]
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return InlineKeyboardMarkup(keyboard)
 
 
-# ===============================
-# 🔹 Поиск собеседника (в очереди)
-# ===============================
-def roulette_search_keyboard():
-    kb = [
-        [KeyboardButton("❌ Отмена"), KeyboardButton("⬅️ Назад в меню")]
+# === Меню рулетки (поиск собеседника) ===
+def get_search_cancel():
+    keyboard = [
+        [KeyboardButton("❌ Отменить"), KeyboardButton("⬅️ Назад")]
     ]
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-# ===============================
-# 🔹 Рулетка — активный чат
-# ===============================
-def roulette_chat_keyboard():
-    kb = [
+# === Меню при найденном собеседнике ===
+def get_roulette_menu():
+    keyboard = [
         [KeyboardButton("⏭ След. собеседник")],
-        [KeyboardButton("⛔ Стоп"), KeyboardButton("⚠️ Пожаловаться")],
-        [KeyboardButton("⬅️ Назад в меню")]
+        [KeyboardButton("⛔ Стоп")],
+        [KeyboardButton("⚠️ Пожаловаться")],
+        [KeyboardButton("⬅️ Назад")]
     ]
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
 
-# ===============================
-# 🔹 Админ-панель
-# ===============================
-def admin_menu_keyboard():
-    kb = [
+# === Выбор пола ===
+def get_gender_menu():
+    keyboard = [
+        [KeyboardButton("👨 Мужчина"), KeyboardButton("👩 Женщина")],
+        [KeyboardButton("⬅️ Назад")]
+    ]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+# === Админ панель ===
+def get_admin_menu():
+    keyboard = [
         [KeyboardButton("📊 Статистика"), KeyboardButton("👥 Пользователи")],
         [KeyboardButton("⚠️ Жалобы"), KeyboardButton("🗑 Очистить жалобы")],
         [KeyboardButton("📢 Рассылка"), KeyboardButton("🔗 Все ссылки")],
         [KeyboardButton("🚫 Забанить"), KeyboardButton("✅ Разбанить")],
-        [KeyboardButton("⬅️ Назад в меню")]
+        [KeyboardButton("⬅️ Назад")]
     ]
-    return ReplyKeyboardMarkup(kb, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
+
+# === Кнопка Отмена ===
+def get_cancel_keyboard():
+    keyboard = [[KeyboardButton("❌ Отменить")]]
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
