@@ -1,8 +1,16 @@
 import asyncio
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    MessageHandler,
+    CommandHandler,
+    CallbackQueryHandler,
+    filters
+)
 
+# Импортируем настройки
 from config.settings import TOKEN
-from db.database import init_db
+
+# Импортируем регистрацию всех хендлеров
 from handlers import (
     register_start_handlers,
     register_menu_handlers,
@@ -13,30 +21,28 @@ from handlers import (
     register_broadcast_handlers
 )
 
-import logger.logger as logger
+# Подключение базы
+from db.database import init_db
 
 
 async def main():
-    """Главная точка запуска бота"""
-    logger.info("Бот запускается...")
+    # Инициализация бота
+    app = Application.builder().token(TOKEN).build()
 
-    # Инициализация базы данных
+    print("📦 Инициализация базы данных...")
     await init_db()
 
-    # Создаём приложение Telegram
-    application = Application.builder().token(TOKEN).build()
+    print("🔗 Регистрация обработчиков...")
+    register_start_handlers(app)
+    register_menu_handlers(app)
+    register_anon_link_handlers(app)
+    register_anon_chat_handlers(app)
+    register_roulette_handlers(app)
+    register_admin_handlers(app)
+    register_broadcast_handlers(app)
 
-    # Регистрируем все обработчики
-    register_start_handlers(application)
-    register_menu_handlers(application)
-    register_anon_link_handlers(application)
-    register_anon_chat_handlers(application)
-    register_roulette_handlers(application)
-    register_admin_handlers(application)
-    register_broadcast_handlers(application)
-
-    logger.info("Бот успешно запущен!")
-    await application.run_polling()
+    print("🚀 Бот запущен и слушает обновления!")
+    await app.run_polling()
 
 
 if __name__ == "__main__":
