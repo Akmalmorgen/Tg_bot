@@ -1,70 +1,49 @@
-import aiosqlite
-from config.settings import DATABASE_PATH
+from .database import Database
 
+async def get_state(user_id):
+    async with Database.connect() as db:
+        cur = await db.execute("SELECT state FROM users WHERE user_id = ?", (user_id,))
+        row = await cur.fetchone()
+        return row[0] if row else None
 
-# === Добавить пользователя ===
-async def add_user(user_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
+async def set_state(user_id, state):
+    async with Database.connect() as db:
         await db.execute(
-            "INSERT OR IGNORE INTO users (user_id, state) VALUES (?, ?)",
-            (user_id, "main_menu")
+            "INSERT INTO users (user_id, state) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET state = excluded.state",
+            (user_id, state),
         )
         await db.commit()
 
-
-# === Получить состояние пользователя ===
-async def get_user_state(user_id: int) -> str:
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute(
-            "SELECT state FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        row = await cursor.fetchone()
-    return row[0] if row else "main_menu"
-
-
-# === Установить состояние ===
-async def set_state(user_id: int, state: str):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
+async def set_gender(user_id, gender):
+    async with Database.connect() as db:
         await db.execute(
-            "UPDATE users SET state = ? WHERE user_id = ?",
-            (state, user_id)
+            "UPDATE users SET gender = ? WHERE user_id = ?",
+            (gender, user_id),
         )
         await db.commit()
 
+async def get_gender(user_id):
+    async with Database.connect() as db:
+        cur = await db.execute("SELECT gender FROM users WHERE user_id = ?", (user_id,))
+        row = await cur.fetchone()
+        return row[0] if row else None
 
-# === Получить всех пользователей ===
-async def get_all_users():
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute("SELECT user_id FROM users")
-        rows = await cursor.fetchall()
-    return [row[0] for row in rows]
-
-
-# === Бан ===
-async def ban_user(user_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
+async def set_partner(user_id, partner_id):
+    async with Database.connect() as db:
         await db.execute(
-            "UPDATE users SET banned = 1 WHERE user_id = ?",
-            (user_id,)
+            "UPDATE users SET in_chat_with = ? WHERE user_id = ?",
+            (partner_id, user_id)
         )
         await db.commit()
 
-
-async def unban_user(user_id: int):
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        await db.execute(
-            "UPDATE users SET banned = 0 WHERE user_id = ?",
-            (user_id,)
+async def get_partner(user_id):
+    async with Database.connect() as db:
+        cur = await db.execute(
+            "SELECT in_chat_with FROM users WHERE user_id = ?", (user_id,)
         )
-        await db.commit()
+        row = await cur.fetchone()
+        return row[0] if row else None
 
-
-async def is_banned(user_id: int) -> bool:
-    async with aiosqlite.connect(DATABASE_PATH) as db:
-        cursor = await db.execute(
-            "SELECT banned FROM users WHERE user_id = ?",
-            (user_id,)
-        )
-        row = await cursor.fetchone()
-    return row and row[0] == 1
+async def clear_partner(user_id):
+    await set_partner(user_id, None)
