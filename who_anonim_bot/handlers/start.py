@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler, MessageHandler, filters
-from keyboards.keyboards import main_menu_keyboard
+from keyboards.keyboards import get_main_menu
 from config.settings import BOT_USERNAME
 from db.users import add_user
 
