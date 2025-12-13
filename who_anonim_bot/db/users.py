@@ -1,49 +1,100 @@
 from .database import Database
 
-async def get_state(user_id):
-    async with Database.connect() as db:
-        cur = await db.execute("SELECT state FROM users WHERE user_id = ?", (user_id,))
-        row = await cur.fetchone()
-        return row[0] if row else None
 
-async def set_state(user_id, state):
+# ───────────────
+# Пользователь
+# ───────────────
+
+async def add_user(user_id: int):
     async with Database.connect() as db:
         await db.execute(
-            "INSERT INTO users (user_id, state) VALUES (?, ?) "
-            "ON CONFLICT(user_id) DO UPDATE SET state = excluded.state",
-            (user_id, state),
+            """
+            INSERT OR IGNORE INTO users (user_id)
+            VALUES (?)
+            """,
+            (user_id,),
         )
         await db.commit()
 
-async def set_gender(user_id, gender):
+
+async def is_user_exists(user_id: int) -> bool:
+    async with Database.connect() as db:
+        cursor = await db.execute(
+            "SELECT 1 FROM users WHERE user_id = ?",
+            (user_id,),
+        )
+        return await cursor.fetchone() is not None
+
+
+# ───────────────
+# Состояния
+# ───────────────
+
+async def set_state(user_id: int, state: str | None):
     async with Database.connect() as db:
         await db.execute(
-            "UPDATE users SET gender = ? WHERE user_id = ?",
-            (gender, user_id),
+            """
+            UPDATE users
+            SET state = ?
+            WHERE user_id = ?
+            """,
+            (state, user_id),
         )
         await db.commit()
 
-async def get_gender(user_id):
+
+async def get_user_state(user_id: int) -> str | None:
     async with Database.connect() as db:
-        cur = await db.execute("SELECT gender FROM users WHERE user_id = ?", (user_id,))
-        row = await cur.fetchone()
+        cursor = await db.execute(
+            """
+            SELECT state
+            FROM users
+            WHERE user_id = ?
+            """,
+            (user_id,),
+        )
+        row = await cursor.fetchone()
         return row[0] if row else None
 
-async def set_partner(user_id, partner_id):
+
+# ───────────────
+# Бан
+# ───────────────
+
+async def ban_user(user_id: int):
     async with Database.connect() as db:
         await db.execute(
-            "UPDATE users SET in_chat_with = ? WHERE user_id = ?",
-            (partner_id, user_id)
+            "UPDATE users SET banned = 1 WHERE user_id = ?",
+            (user_id,),
         )
         await db.commit()
 
-async def get_partner(user_id):
-    async with Database.connect() as db:
-        cur = await db.execute(
-            "SELECT in_chat_with FROM users WHERE user_id = ?", (user_id,)
-        )
-        row = await cur.fetchone()
-        return row[0] if row else None
 
-async def clear_partner(user_id):
-    await set_partner(user_id, None)
+async def unban_user(user_id: int):
+    async with Database.connect() as db:
+        await db.execute(
+            "UPDATE users SET banned = 0 WHERE user_id = ?",
+            (user_id,),
+        )
+        await db.commit()
+
+
+async def is_banned(user_id: int) -> bool:
+    async with Database.connect() as db:
+        cursor = await db.execute(
+            "SELECT banned FROM users WHERE user_id = ?",
+            (user_id,),
+        )
+        row = await cursor.fetchone()
+        return bool(row[0]) if row else False
+
+
+# ───────────────
+# Статистика
+# ───────────────
+
+async def get_users_count() -> int:
+    async with Database.connect() as db:
+        cursor = await db.execute("SELECT COUNT(*) FROM users")
+        row = await cursor.fetchone()
+        return row[0]
