@@ -1,47 +1,78 @@
 import aiosqlite
+from pathlib import Path
 
-DB_PATH = "who_anonim_bot/database.db"
+
+# Путь к базе данных (SQLite)
+BASE_DIR = Path(__file__).resolve().parent.parent
+DB_PATH = BASE_DIR / "database.sqlite3"
+
 
 class Database:
     @staticmethod
-    async def connect():
-        return await aiosqlite.connect(DB_PATH)
+    def connect():
+        """
+        Подключение к SQLite
+        """
+        return aiosqlite.connect(DB_PATH)
 
-    @staticmethod
-    async def init_db():
-        async with aiosqlite.connect(DB_PATH) as db:
-            await db.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY,
-                    state TEXT DEFAULT 'menu',
-                    gender TEXT,
-                    in_chat_with INTEGER
-                );
 
-                CREATE TABLE IF NOT EXISTS anon_links (
-                    user_id INTEGER PRIMARY KEY,
-                    link_code TEXT UNIQUE
-                );
+async def init_db():
+    """
+    Инициализация всех таблиц
+    """
+    async with Database.connect() as db:
+        # Пользователи
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            state TEXT,
+            is_banned INTEGER DEFAULT 0
+        )
+        """)
 
-                CREATE TABLE IF NOT EXISTS anon_sessions (
-                    session_id TEXT PRIMARY KEY,
-                    owner_id INTEGER,
-                    guest_id INTEGER
-                );
+        # Анонимные ссылки
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS anon_links (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_id INTEGER UNIQUE,
+            link_code TEXT UNIQUE
+        )
+        """)
 
-                CREATE TABLE IF NOT EXISTS roulette_waiting (
-                    user_id INTEGER PRIMARY KEY,
-                    gender TEXT
-                );
+        # Анонимные сессии (через ссылку)
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS anon_sessions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_id INTEGER,
+            anon_id TEXT,
+            is_active INTEGER DEFAULT 1
+        )
+        """)
 
-                CREATE TABLE IF NOT EXISTS complaints (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    from_user INTEGER,
-                    against_user INTEGER,
-                    reason TEXT,
-                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                );
-                """
-            )
-            await db.commit()
+        # Рулетка
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS roulette_queue (
+            user_id INTEGER PRIMARY KEY,
+            gender TEXT
+        )
+        """)
+
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS roulette_chats (
+            user_id INTEGER PRIMARY KEY,
+            partner_id INTEGER
+        )
+        """)
+
+        # Жалобы
+        await db.execute("""
+        CREATE TABLE IF NOT EXISTS complaints (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_user INTEGER,
+            to_user INTEGER,
+            reason TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        """)
+
+        await db.commit()
