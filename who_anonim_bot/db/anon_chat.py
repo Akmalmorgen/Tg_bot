@@ -1,78 +1,50 @@
-from .database import get_db
+import uuid
+from .database import Database
+
+def _new_session_id() -> str:
+    return uuid.uuid4().hex[:12]
 
 
-# ======================================
-# 🔹 Создать анонимный чат
-# user_id — тот, кто зашёл по ссылке
-# owner_id — владелец ссылки
-# ======================================
-async def create_session(user_id: int, owner_id: int):
-    db = await get_db()
-
-    await db.execute(
-        "INSERT INTO anon_sessions (user_id, owner_id) VALUES (?, ?)",
-        (user_id, owner_id)
-    )
-
-    await db.commit()
-    await db.close()
+async def create_session(owner_id: int, guest_id: int) -> str:
+    session_id = _new_session_id()
+    async with Database.connect() as db:
+        await db.execute(
+            """
+            INSERT INTO anon_sessions (session_id, owner_id, guest_id)
+            VALUES (?, ?, ?)
+            """,
+            (session_id, owner_id, guest_id),
+        )
+        await db.commit()
+    return session_id
 
 
-# ======================================
-# 🔹 Получить владельца ссылки по user_id
-# Если человек пишет — надо понять кому
-# ======================================
-async def get_owner(user_id: int):
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT owner_id FROM anon_sessions WHERE user_id = ?",
-        (user_id,)
-    )
-    row = await cursor.fetchone()
-    await db.close()
-
-    return row[0] if row else None
+async def get_session_by_user(user_id: int):
+    async with Database.connect() as db:
+        cursor = await db.execute(
+            """
+            SELECT session_id, owner_id, guest_id
+            FROM anon_sessions
+            WHERE owner_id = ? OR guest_id = ?
+            """,
+            (user_id, user_id),
+        )
+        return await cursor.fetchone()
 
 
-# ======================================
-# 🔹 Получить анонима, который пишет владельцу
-# Нужен когда владелец хочет ответить
-# ======================================
-async def get_partner_for_owner(owner_id: int):
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT user_id FROM anon_sessions WHERE owner_id = ? ORDER BY id DESC LIMIT 1",
-        (owner_id,)
-    )
-    row = await cursor.fetchone()
-    await db.close()
+async def get_partner(user_id: int):
+    session = await get_session_by_user(user_id)
+    if not session:
+        return None
 
-    return row[0] if row else None
+    _, owner_id, guest_id = session
+    return guest_id if user_id == owner_id else owner_id
 
 
-# ======================================
-# 🔹 Удалить чат (выйти)
-# ======================================
-async def delete_session(user_id: int):
-    db = await get_db()
-    await db.execute(
-        "DELETE FROM anon_sessions WHERE user_id = ? OR owner_id = ?",
-        (user_id, user_id)
-    )
-    await db.commit()
-    await db.close()
-
-
-# ======================================
-# 🔹 Проверка есть ли активный чат
-# ======================================
-async def is_in_chat(user_id: int) -> bool:
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT 1 FROM anon_sessions WHERE user_id = ? OR owner_id = ?",
-        (user_id, user_id)
-    )
-    row = await cursor.fetchone()
-    await db.close()
-
-    return row is not None
+async def close_session(session_id: str):
+    async with Database.connect() as db:
+        await db.execute(
+            "DELETE FROM anon_sessions WHERE session_id = ?",
+            (session_id,),
+        )
+        await db.commit()
