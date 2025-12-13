@@ -1,50 +1,97 @@
-import uuid
-from .database import Database
-
-def _new_session_id() -> str:
-    return uuid.uuid4().hex[:12]
+import random
+from db.database import get_db
 
 
-async def create_session(owner_id: int, guest_id: int) -> str:
-    session_id = _new_session_id()
-    async with Database.connect() as db:
-        await db.execute(
-            """
-            INSERT INTO anon_sessions (session_id, owner_id, guest_id)
-            VALUES (?, ?, ?)
-            """,
-            (session_id, owner_id, guest_id),
-        )
-        await db.commit()
-    return session_id
+def generate_anon_id() -> str:
+    """
+    Генерирует ID анонима вида: 3456
+    """
+    return str(random.randint(1000, 9999))
 
 
-async def get_session_by_user(user_id: int):
-    async with Database.connect() as db:
-        cursor = await db.execute(
-            """
-            SELECT session_id, owner_id, guest_id
-            FROM anon_sessions
-            WHERE owner_id = ? OR guest_id = ?
-            """,
-            (user_id, user_id),
-        )
-        return await cursor.fetchone()
+async def create_anon_session(owner_id: int, sender_id: int) -> str:
+    """
+    Создаёт анонимную сессию между отправителем и владельцем ссылки.
+    Возвращает anon_id (одинаковый для всей переписки).
+    """
+    db = await get_db()
+
+    # Проверяем, есть ли уже сессия
+    cursor = await db.execute(
+        """
+        SELECT anon_id FROM anon_sessions
+        WHERE owner_id = ? AND sender_id = ?
+        """,
+        (owner_id, sender_id)
+    )
+    row = await cursor.fetchone()
+    if row:
+        await db.close()
+        return row[0]
+
+    anon_id = generate_anon_id()
+
+    await db.execute(
+        """
+        INSERT INTO anon_sessions (anon_id, owner_id, sender_id)
+        VALUES (?, ?, ?)
+        """,
+        (anon_id, owner_id, sender_id)
+    )
+    await db.commit()
+    await db.close()
+
+    return anon_id
 
 
-async def get_partner(user_id: int):
-    session = await get_session_by_user(user_id)
-    if not session:
-        return None
+async def get_anon_by_sender(sender_id: int) -> tuple | None:
+    """
+    Получить владельца ссылки и anon_id по отправителю
+    """
+    db = await get_db()
+    cursor = await db.execute(
+        """
+        SELECT anon_id, owner_id FROM anon_sessions
+        WHERE sender_id = ?
+        """,
+        (sender_id,)
+    )
+    row = await cursor.fetchone()
+    await db.close()
 
-    _, owner_id, guest_id = session
-    return guest_id if user_id == owner_id else owner_id
+    if row:
+        return row  # (anon_id, owner_id)
+    return None
 
 
-async def close_session(session_id: str):
-    async with Database.connect() as db:
-        await db.execute(
-            "DELETE FROM anon_sessions WHERE session_id = ?",
-            (session_id,),
-        )
-        await db.commit()
+async def get_sender_by_anon(owner_id: int, anon_id: str) -> int | None:
+    """
+    Получить sender_id по anon_id (для ответа владельца)
+    """
+    db = await get_db()
+    cursor = await db.execute(
+        """
+        SELECT sender_id FROM anon_sessions
+        WHERE owner_id = ? AND anon_id = ?
+        """,
+        (owner_id, anon_id)
+    )
+    row = await cursor.fetchone()
+    await db.close()
+
+    if row:
+        return row[0]
+    return None
+
+
+async def close_anon_session(sender_id: int):
+    """
+    Закрыть анонимную сессию (например, если ссылка сменена)
+    """
+    db = await get_db()
+    await db.execute(
+        "DELETE FROM anon_sessions WHERE sender_id = ?",
+        (sender_id,)
+    )
+    await db.commit()
+    await db.close()
