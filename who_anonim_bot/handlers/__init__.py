@@ -4,17 +4,14 @@ from .anon_link import register_anon_link_handlers
 from .anon_chat import register_anon_chat_handlers
 from .roulette import register_roulette_handlers
 from .admin import register_admin_handlers
+from .broadcast import register_broadcast_handlers
 
 
-def register_all_handlers(application):
-    """
-    Регистрирует все обработчики в боте.
-    Вызывается из main.py
-    """
-
-    register_start_handlers(application)
-    register_menu_handlers(application)
-    register_anon_link_handlers(application)
-    register_anon_chat_handlers(application)
-    register_roulette_handlers(application)
-    register_admin_handlers(application)
+def register_all_handlers(app):
+    register_start_handlers(app)
+    register_menu_handlers(app)
+    register_anon_link_handlers(app)
+    register_anon_chat_handlers(app)
+    register_roulette_handlers(app)
+    register_admin_handlers(app)
+    register_broadcast_handlers(app)
