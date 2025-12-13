@@ -1,68 +1,61 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import MessageHandler, ContextTypes, filters
 
-from db.users import get_user_state, set_state
-from states.states import MAIN_MENU
-
-from keyboards.keyboards import main_menu_kb, help_kb
-from handlers.anon_link import show_my_link
-from handlers.roulette import start_roulette_handler
-from handlers.admin import admin_panel
-from config.settings import ADMINS
+from keyboards.keyboards import (
+    get_main_menu,
+)
+from states.states import UserState
+from db.users import set_state
 
 
-# ======================================================
-# 🔹 Главное меню — универсальная точка входа
-# ======================================================
-async def menu_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+def register_menu_handlers(application):
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, menu_router)
+    )
 
-    user_id = update.effective_user.id
+
+async def menu_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    user_id = update.effective_user.id
 
-    # Всегда ставим состояние меню
-    await set_state(user_id, MAIN_MENU)
-
-    # --- Кнопки меню ---
+    # --- МОЯ АНОН-ССЫЛКА ---
     if text == "🔗 Моя анон-ссылка":
+        from handlers.anon_link import show_my_link
         await show_my_link(update, context)
         return
 
+    # --- РУЛЕТКА ---
     if text == "🎲 Рулетка":
-        await start_roulette_handler(update, context)
+        from handlers.roulette import start_roulette
+        await start_roulette(update, context)
         return
 
+    # --- ПОМОЩЬ ---
     if text == "💬 Помощь":
-        await show_help(update, context)
+        help_text = (
+            "━━━━━━━━━━━━━━━━━━━━━━━\n"
+            "💡 <b>ПОМОЩЬ</b>\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            "По всем вопросам:\n"
+            "• Помощь\n"
+            "• Доработки\n"
+            "• Партнёрство\n\n"
+            "📱 @who_mercy\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━"
+        )
+
+        await update.message.reply_text(
+            help_text,
+            parse_mode="HTML",
+            reply_markup=get_main_menu()
+        )
         return
 
-    if text == "⚙️ Админ-панель":
-        if user_id in ADMINS:
-            await admin_panel(update, context)
-        else:
-            await update.message.reply_text("❌ У вас нет доступа.")
+    # --- НАЗАД В МЕНЮ ---
+    if text == "⬅️ Назад" or text == "🔙 Назад":
+        set_state(user_id, UserState.MAIN_MENU)
+        await update.message.reply_text(
+            "🏠 Главное меню",
+            reply_markup=get_main_menu()
+        )
         return
-
-    # Если текст неизвестный
-    await update.message.reply_text(
-        "Выберите действие снизу 👇",
-        reply_markup=main_menu_kb()
-    )
-
-
-# ======================================================
-# 🔹 Помощь
-# ======================================================
-async def show_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    text = (
-        "📘 <b>Помощь</b>\n\n"
-        "🔗 Создай свою анонимную ссылку и делись ею.\n"
-        "🎲 Общайся в рулетке.\n"
-        "💬 Отвечай анонимным пользователям.\n\n"
-        "👨‍💻 Для сотрудничества: @who_mercy"
-    )
-
-    await update.message.reply_text(
-        text,
-        parse_mode="HTML",
-        reply_markup=main_menu_kb()
-    )
