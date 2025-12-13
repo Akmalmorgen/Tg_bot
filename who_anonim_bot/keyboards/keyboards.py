@@ -1,14 +1,14 @@
-from telegram import ReplyKeyboardMarkup, KeyboardButton
+from telegram import ReplyKeyboardMarkup
 
 
-def main_menu_keyboard(is_admin=False):
-    buttons = [
-        [KeyboardButton("🔗 Моя анон-ссылка")],
-        [KeyboardButton("🎲 Рулетка")],
-        [KeyboardButton("💬 Помощь")]
+def get_main_menu(is_admin: bool = False):
+    keyboard = [
+        ["🔗 Моя анон-ссылка"],
+        ["🎲 Рулетка"],
+        ["💬 Помощь"],
     ]
 
     if is_admin:
-        buttons.append([KeyboardButton("⚙️ Админ-панель")])
+        keyboard.append(["⚙️ Админ-панель"])
 
-    return ReplyKeyboardMarkup(buttons, resize_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
