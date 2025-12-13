@@ -1,25 +1,23 @@
-# ===============================
-#  🔹 STATES — состояния бота
-# ===============================
+from enum import Enum, auto
 
-# Главное меню
-MAIN_MENU = "main_menu"
 
-# Моя анон-ссылка
-MY_LINK = "my_link"
-CHANGE_LINK = "change_link"
+class UserState(Enum):
+    MAIN_MENU = auto()
 
-# Анонимный чат через ссылку
-ANON_CONNECTED = "anon_connected"     # аноним пишет владельцу
-WAITING_OWNER_REPLY = "waiting_owner_reply"  # владелец отвечает анониму
+    # 🔗 Анонимная ссылка
+    MY_ANON_LINK = auto()
+    CHANGE_LINK = auto()
 
-# Рулетка
-CHOOSING_GENDER = "choosing_gender"
-SEARCHING_ROULETTE = "searching_roulette"
-IN_ROULETTE = "in_roulette"
+    # 👻 Анонимное общение по ссылке
+    ANON_CHAT = auto()
 
-# Админ-панель
-ADMIN_MENU = "admin_menu"
-ADMIN_BROADCAST = "admin_broadcast"
-ADMIN_BAN = "admin_ban"
-ADMIN_UNBAN = "admin_unban"
+    # 🎲 Рулетка
+    ROULETTE_GENDER = auto()
+    ROULETTE_SEARCH = auto()
+    ROULETTE_CHAT = auto()
+
+    # ⚙️ Админ
+    ADMIN_PANEL = auto()
+    ADMIN_BROADCAST = auto()
+    ADMIN_BAN = auto()
+    ADMIN_UNBAN = auto()
