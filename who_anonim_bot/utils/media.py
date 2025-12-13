@@ -1,13 +1,30 @@
-from telegram import Message
+from telegram import Update
+from telegram.ext import ContextTypes
 
 
-async def send_media_copy(bot, chat_id: int, message: Message):
+async def send_any_message(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    chat_id: int
+):
     """
-    Универсальная отправка любых медиа через copy_message.
-    Работает для фото, видео, голосовых, документов, GIF и т.д.
+    Копирует ЛЮБОЕ сообщение:
+    - текст
+    - фото
+    - видео
+    - аудио
+    - документ
+    - голос
     """
+
     try:
-        return await bot.copy_message(chat_id, message.chat_id, message.message_id)
+        await context.bot.copy_message(
+            chat_id=chat_id,
+            from_chat_id=update.effective_chat.id,
+            message_id=update.message.message_id
+        )
+        return True
+
     except Exception as e:
-        print("Ошибка при отправке медиа:", e)
-        return None
+        print(f"[MEDIA ERROR] {e}")
+        return False
