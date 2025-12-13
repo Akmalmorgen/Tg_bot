@@ -1,69 +1,49 @@
 import secrets
-from .database import get_db
+import string
+from .database import Database
+
+def _generate_code(length: int = 8) -> str:
+    alphabet = string.ascii_letters + string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-# ========================================
-# 🔹 Генерация уникального кода ссылки
-# ========================================
-def generate_link_code() -> str:
-    """Генерирует уникальный код ссылки типа 'A3f9K2'."""
-    return secrets.token_hex(3)  # 6 символов
+async def get_or_create_link(user_id: int) -> str:
+    async with Database.connect() as db:
+        cursor = await db.execute(
+            "SELECT link_code FROM anon_links WHERE user_id = ?",
+            (user_id,)
+        )
+        row = await cursor.fetchone()
+
+        if row:
+            return row[0]
+
+        code = _generate_code()
+        await db.execute(
+            "INSERT INTO anon_links (user_id, link_code) VALUES (?, ?)",
+            (user_id, code)
+        )
+        await db.commit()
+        return code
 
 
-# ========================================
-# 🔹 Получить ссылку пользователя
-# ========================================
-async def get_link(user_id: int):
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT link_code FROM links WHERE user_id = ?",
-        (user_id,)
-    )
-    row = await cursor.fetchone()
-    await db.close()
-
-    return row[0] if row else None
+async def regenerate_link(user_id: int) -> str:
+    new_code = _generate_code()
+    async with Database.connect() as db:
+        await db.execute(
+            "INSERT INTO anon_links (user_id, link_code) VALUES (?, ?) "
+            "ON CONFLICT(user_id) DO UPDATE SET link_code = excluded.link_code",
+            (user_id, new_code)
+        )
+        await db.commit()
+    return new_code
 
 
-# ========================================
-# 🔹 Создать или обновить ссылку
-# ========================================
-async def set_link(user_id: int, new_code: str):
-    db = await get_db()
-    await db.execute(
-        "INSERT INTO links (user_id, link_code) VALUES (?, ?) "
-        "ON CONFLICT(user_id) DO UPDATE SET link_code = excluded.link_code",
-        (user_id, new_code)
-    )
-    await db.commit()
-    await db.close()
-
-
-# ========================================
-# 🔹 Найти пользователя по коду ссылки
-# ========================================
-async def find_owner_by_code(code: str):
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT user_id FROM links WHERE link_code = ?",
-        (code,)
-    )
-    row = await cursor.fetchone()
-    await db.close()
-
-    return row[0] if row else None
-
-
-# ========================================
-# 🔹 Проверить, существует ли такой код
-# ========================================
-async def is_code_exists(code: str) -> bool:
-    db = await get_db()
-    cursor = await db.execute(
-        "SELECT 1 FROM links WHERE link_code = ?",
-        (code,)
-    )
-    row = await cursor.fetchone()
-    await db.close()
-
-    return row is not None
+async def get_user_by_code(code: str) -> int | None:
+    async with Database.connect() as db:
+        cursor = await db.execute(
+            "SELECT user_id FROM anon_links WHERE link_code = ?",
+            (code,)
+        )
+        row = await cursor.fetchone()
+        return row[0] if row else None
